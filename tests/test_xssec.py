@@ -445,7 +445,7 @@ class XSSECTest(unittest.TestCase):
         self.assertTrue(
             'Error in offline validation of access token:' in str(ctx.exception))
 
-    @patch('requests.get')
+    @patch('httpx.get')
     def test_get_verification_key_from_uaa(self, mock_requests):
         from sap.xssec.key_cache import KeyCache
         xssec.SecurityContext.verificationKeyCache = KeyCache()
