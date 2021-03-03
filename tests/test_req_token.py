@@ -1,5 +1,6 @@
 # pylint: disable=missing-docstring,invalid-name,missing-docstring
 import unittest
+from unittest.mock import patch
 from os import environ, path, devnull
 import socket
 from time import sleep
@@ -9,6 +10,8 @@ from sap import xssec
 from tests import uaa_configs
 from tests import jwt_payloads
 from tests.jwt_tools import sign
+
+import requests
 
 TEST_SERVER_POLL_ATTEMPTS = 10
 
@@ -39,8 +42,9 @@ class ReqTokenForClientTest(unittest.TestCase):
         environ["SAP_EXT_JWT_ALG"] = "*"
 
         cls.DEVNULL = open(devnull, 'w')
-        cls.flask_process = Popen(['flask', 'run', '-p', flask_port, '-h', 'localhost'],
-                                  env=flask_env, stdout=cls.DEVNULL, stderr=cls.DEVNULL)
+        cls.flask_process = Popen(['/sapmnt/home/I506278/git/github/sap/cloud-pysec/.venv/bin/flask',
+                                'run', '-p', flask_port, '-h', 'localhost'], env=flask_env,
+                                stdout=cls.DEVNULL, stderr=cls.DEVNULL)
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         poll = 0
 
@@ -77,7 +81,13 @@ class ReqTokenForClientTest(unittest.TestCase):
             sec_context.request_token_for_client(service_credentials, None)
         self.assertTrue(str(ctx.exception).endswith(error_message_end))
 
-    def test_req_client_for_user_401_error(self):
+    def _setup_get_error(self, mock):
+        mock.side_effect = requests.exceptions.SSLError
+
+    @patch('httpx.get')
+    def test_req_client_for_user_401_error(self, mock_get):
+        self._setup_get_error(mock_get)
+
         sec_context = xssec.create_security_context(
             sign(jwt_payloads.USER_TOKEN_JWT_BEARER_FOR_CLIENT), uaa_configs.VALID['uaa'])
         expected_message = \
@@ -87,13 +97,19 @@ class ReqTokenForClientTest(unittest.TestCase):
         self._request_token_for_client_error(
             sec_context, flask_url + '/401', expected_message)
 
-    def test_req_client_for_user_500_error(self):
+    @patch('httpx.get')
+    def test_req_client_for_user_500_error(self, mock_get):
+        self._setup_get_error(mock_get)
+
         sec_context = xssec.create_security_context(
             sign(jwt_payloads.USER_TOKEN_JWT_BEARER_FOR_CLIENT), uaa_configs.VALID['uaa'])
         self._request_token_for_client_error(
             sec_context, flask_url + '/500', 'HTTP status code: 500')
 
-    def test_req_client_for_user(self):
+    @patch('httpx.get')
+    def test_req_client_for_user(self, mock_get):
+        self._setup_get_error(mock_get)
+
         sec_context = xssec.create_security_context(
             sign(jwt_payloads.USER_TOKEN_JWT_BEARER_FOR_CLIENT), uaa_configs.VALID['uaa'])
         service_credentials = {

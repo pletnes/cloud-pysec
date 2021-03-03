@@ -12,6 +12,8 @@ from tests import jwt_payloads
 from tests.http_responses import HTTP_SUCCESS
 from tests.jwt_tools import sign
 
+import httpx
+
 try:
     from importlib import reload
     from unittest.mock import MagicMock, patch
