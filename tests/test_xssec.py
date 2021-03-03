@@ -1,4 +1,5 @@
 # pylint: disable=missing-docstring,invalid-name,missing-docstring,too-many-public-methods
+from ssl import SSLError
 import unittest
 import json
 from os import environ
@@ -41,6 +42,11 @@ class XSSECTest(unittest.TestCase):
         reload(jwt_validation_facade)
         reload(security_context)
         jwt_validation_facade.ALGORITHMS = ['RS256', 'HS256']
+
+        patcher = patch('httpx.get')
+        self.mock_httpx_get = patcher.start()
+        self.addCleanup(patcher.stop)
+        self.mock_httpx_get.side_effect = SSLError
 
     def _check_invalid_params(self, token, uaa, message):
         with self.assertRaises(ValueError) as ctx:
